@@ -8,7 +8,7 @@
     "npm": "9.7.1"
   },
   "scripts": {
-    "start": "node server.js",
+    "start": "node server/server.js",
     "start:prod": "npm run build && node server.js",
     "start:dev": "concurrently \"nodemon --ignore 'client/*'\" \"npm run client\"",
     "client": "cd client && npm run start",
