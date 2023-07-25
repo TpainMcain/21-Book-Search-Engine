@@ -9,12 +9,13 @@
   - [Contact Me](#contact-me)
   
 ## Description
+The Google Books Search App is a web application that allows users to search for books using the Google Books API and save their favorite books to their account. It is built using React.js for the frontend, React Router for handling client-side routing, Apollo Client for state management and data fetching with GraphQL, and Bootstrap for responsive UI design.
 
-### Technology Stack
-* React.js
-* Node.js
-* Express.js
-* CSS3
+### Features
+* Search for books: Users can enter keywords in the search bar and get a list of books related to their search query. The app fetches book data from the Google Books API to display search results.
+* Save favorite books: Logged-in users can save their favorite books to their account. The app uses GraphQL mutations to store the saved book data on the backend server.
+* View saved books: Users can view their saved books by navigating to the "Saved Books" page. The app uses GraphQL queries to retrieve the saved book data from the backend.
+* Responsive design: The app is designed with Bootstrap to provide a user-friendly experience on various devices, including desktops, tablets, and smartphones.
 
 ## Installation Instructions
 If you wish to run this app locally:
