@@ -1,48 +1,29 @@
-import React, { useState, useEffect } from 'react';
-import {
-  Container,
-  Card,
-  Button,
-  Row,
-  Col
-} from 'react-bootstrap';
+import React from 'react';
+import { Jumbotron, Container, CardColumns, Card, Button } from 'react-bootstrap';
 
-import { getMe, deleteBook } from '../utils/API';
+import { useQuery, useMutation } from '@apollo/react-hooks';
+import { GET_ME } from '../utils/queries';
+import { REMOVE_BOOK } from '../utils/mutations';
 import Auth from '../utils/auth';
 import { removeBookId } from '../utils/localStorage';
 
+// SavedBooks component definition
 const SavedBooks = () => {
-  const [userData, setUserData] = useState({});
+  // Fetching user data from the server using Apollo useQuery hook
+  const { loading, data } = useQuery(GET_ME);
+  const [deleteBook] = useMutation(REMOVE_BOOK);
+  const userData = data?.me || {};
 
-  // use this to determine if `useEffect()` hook needs to run again
-  const userDataLength = Object.keys(userData).length;
+  // Display a message if the user is not logged in
+  if (!userData?.username) {
+    return (
+      <h4>
+        You need to be logged in to see this page. Use the navigation links above to sign up or log in!
+      </h4>
+    );
+  }
 
-  useEffect(() => {
-    const getUserData = async () => {
-      try {
-        const token = Auth.loggedIn() ? Auth.getToken() : null;
-
-        if (!token) {
-          return false;
-        }
-
-        const response = await getMe(token);
-
-        if (!response.ok) {
-          throw new Error('something went wrong!');
-        }
-
-        const user = await response.json();
-        setUserData(user);
-      } catch (err) {
-        console.error(err);
-      }
-    };
-
-    getUserData();
-  }, [userDataLength]);
-
-  // create function that accepts the book's mongo _id value as param and deletes the book from the database
+  // Function to handle book deletion from the database
   const handleDeleteBook = async (bookId) => {
     const token = Auth.loggedIn() ? Auth.getToken() : null;
 
@@ -51,58 +32,68 @@ const SavedBooks = () => {
     }
 
     try {
-      const response = await deleteBook(bookId, token);
-
-      if (!response.ok) {
-        throw new Error('something went wrong!');
-      }
-
-      const updatedUser = await response.json();
-      setUserData(updatedUser);
-      // upon success, remove book's id from localStorage
+      await deleteBook({
+        variables: { bookId: bookId },
+        // Updating the cache to remove the deleted book
+        update: cache => {
+          const data = cache.readQuery({ query: GET_ME });
+          const userDataCache = data.me;
+          const savedBooksCache = userDataCache.savedBooks;
+          const updatedBookCache = savedBooksCache.filter((book) => book.bookId !== bookId);
+          data.me.savedBooks = updatedBookCache;
+          cache.writeQuery({ query: GET_ME, data: { data: { ...data.me.savedBooks } } })
+        }
+      });
+      // Upon success, remove the book's id from localStorage
       removeBookId(bookId);
     } catch (err) {
       console.error(err);
     }
   };
 
-  // if data isn't here yet, say so
-  if (!userDataLength) {
+  // Display a loading message if data isn't available yet
+  if (loading) {
     return <h2>LOADING...</h2>;
   }
 
+  // Rendering the SavedBooks component
   return (
     <>
-      <div fluid className='text-light bg-dark p-5'>
+      {/* Jumbotron for the heading */}
+      <Jumbotron fluid className='text-light bg-dark'>
         <Container>
           <h1>Viewing saved books!</h1>
         </Container>
-      </div>
+      </Jumbotron>
       <Container>
-        <h2 className='pt-5'>
+        <h2>
+          {/* Displaying the number of saved books */}
           {userData.savedBooks.length
             ? `Viewing ${userData.savedBooks.length} saved ${userData.savedBooks.length === 1 ? 'book' : 'books'}:`
             : 'You have no saved books!'}
         </h2>
-        <Row>
+        <CardColumns>
+          {/* Mapping through saved books to display each one in a Card */}
           {userData.savedBooks.map((book) => {
             return (
-              <Col md="4">
-                <Card key={book.bookId} border='dark'>
-                  {book.image ? <Card.Img src={book.image} alt={`The cover for ${book.title}`} variant='top' /> : null}
-                  <Card.Body>
-                    <Card.Title>{book.title}</Card.Title>
-                    <p className='small'>Authors: {book.authors}</p>
-                    <Card.Text>{book.description}</Card.Text>
-                    <Button className='btn-block btn-danger' onClick={() => handleDeleteBook(book.bookId)}>
-                      Delete this Book!
-                    </Button>
-                  </Card.Body>
-                </Card>
-              </Col>
+              <Card key={book.bookId} border='dark'>
+                {/* Displaying the book's image if available */}
+                {book.image ? <Card.Img src={book.image} alt={`The cover for ${book.title}`} variant='top' /> : null}
+                <Card.Body>
+                  <Card.Title>{book.title}</Card.Title>
+                  <p className='small'>Authors: {book.authors}</p>
+                  {/* Displaying a link to more information on Google Books */}
+                  {book.link ? <Card.Text><a href={book.link} target="_blank">More Information on Google Books</a></Card.Text> : null}
+                  <Card.Text>{book.description}</Card.Text>
+                  {/* Button to delete the book */}
+                  <Button className='btn-block btn-danger' onClick={() => handleDeleteBook(book.bookId)}>
+                    Delete this Book
+                  </Button>
+                </Card.Body>
+              </Card>
             );
           })}
-        </Row>
+        </CardColumns>
       </Container>
     </>
   );
