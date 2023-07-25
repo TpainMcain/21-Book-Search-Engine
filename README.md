@@ -27,7 +27,7 @@ If you wish to run this app locally:
 5. Visit ```localhost:3000``` in your default browser.
 
 ### Deployed Link:
-
+https://twp-book-search-engine-3314fbf1bd17.herokuapp.com/
 
 ## License
 Permission to use this application is granted under the MIT license.
